@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Змейка для телефона и ПК</title>
+    <title>Змейка для телефона и ПК (2.1)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -103,22 +103,32 @@
     
     // Настройки игры
     const gridSize = 20;
-    let snake = [{x: 10, y: 10}];
-    let food = {x: 5, y: 5};
+    let snake = [];
+    let food = {};
     let dx = 0;
     let dy = 0;
     let score = 0;
-    let gameSpeed = 100;
+    let gameSpeed = 150;
     let gameInterval;
     let isGameOver = false;
+    let isGameStarted = false; // Флаг начала игры
     
     // Управление с клавиатуры
     document.addEventListener('keydown', e => {
+        if (!isGameStarted) {
+            isGameStarted = true;
+            // Начальное движение вправо
+            dx = 1;
+            dy = 0;
+            return;
+        }
+        
         switch(e.key) {
             case 'ArrowUp': if (dy !== 1) { dx = 0; dy = -1; } break;
             case 'ArrowDown': if (dy !== -1) { dx = 0; dy = 1; } break;
             case 'ArrowLeft': if (dx !== 1) { dx = -1; dy = 0; } break;
             case 'ArrowRight': if (dx !== -1) { dx = 1; dy = 0; } break;
+            case ' ': if (isGameOver) startGame(); break;
         }
     });
     
@@ -130,6 +140,13 @@
     
     function addButtonControl(btn, dirX, dirY) {
         const handleStart = () => {
+            if (!isGameStarted) {
+                isGameStarted = true;
+                dx = dirX || 1; // По умолчанию вправо
+                dy = dirY || 0;
+                return;
+            }
+            
             if ((dirX === 0 && dirY === -1 && dy !== 1) || 
                 (dirX === 0 && dirY === 1 && dy !== -1) || 
                 (dirX === -1 && dirY === 0 && dx !== 1) || 
@@ -150,7 +167,7 @@
     
     // Генерация еды
     function generateFood() {
-        const maxPos = canvas.width / gridSize - 1;
+        const maxPos = Math.floor(canvas.width / gridSize) - 1;
         food = {
             x: Math.floor(Math.random() * maxPos),
             y: Math.floor(Math.random() * maxPos)
@@ -189,11 +206,22 @@
             gridSize - 1, 
             gridSize - 1
         );
+        
+        // Отрисовка стартового сообщения
+        if (!isGameStarted && !isGameOver) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Нажмите любую кнопку', canvas.width/2, canvas.height/2 - 20);
+            ctx.fillText('для начала игры', canvas.width/2, canvas.height/2 + 20);
+        }
     }
     
     // Игровая логика
     function gameStep() {
-        if (isGameOver) return;
+        if (isGameOver || !isGameStarted) return;
         
         const head = {x: snake[0].x + dx, y: snake[0].y + dy};
         
@@ -205,7 +233,8 @@
         }
         
         // Проверка на столкновение с собой
-        for (let segment of snake) {
+        for (let i = 0; i < snake.length; i++) {
+            const segment = snake[i];
             if (segment.x === head.x && segment.y === head.y) {
                 gameOver();
                 return;
@@ -242,29 +271,41 @@
         ctx.fillText('Игра окончена!', canvas.width/2, canvas.height/2 - 20);
         ctx.font = '20px Arial';
         ctx.fillText(`Счёт: ${score}`, canvas.width/2, canvas.height/2 + 20);
+        ctx.fillText('Коснитесь экрана', canvas.width/2, canvas.height/2 + 50);
+        ctx.fillText('для новой игры', canvas.width/2, canvas.height/2 + 80);
     }
     
     function startGame() {
-        snake = [{x: 10, y: 10}];
-        dx = 0;
+        // Инициализация змейки из 3 сегментов
+        const startX = Math.floor(canvas.width/gridSize/2);
+        const startY = Math.floor(canvas.height/gridSize/2);
+        snake = [
+            {x: startX, y: startY},
+            {x: startX - 1, y: startY},
+            {x: startX - 2, y: startY}
+        ];
+        
+        dx = 1; // Начальное направление вправо
         dy = 0;
         score = 0;
         scoreElement.textContent = `Счёт: ${score}`;
-        gameSpeed = 100;
+        gameSpeed = 150;
         isGameOver = false;
+        isGameStarted = false; // Ждем первого нажатия
         generateFood();
         clearInterval(gameInterval);
         gameInterval = setInterval(gameStep, gameSpeed);
         draw();
     }
     
-    // Запуск игры при клике
+    // Запуск игры при клике (для рестарта)
     canvas.addEventListener('click', () => {
-        if (isGameOver) {
+        if (isGameOver || !isGameStarted) {
             startGame();
         }
     });
     
+    // Начальная инициализация игры
     startGame();
 </script>
 </body>
